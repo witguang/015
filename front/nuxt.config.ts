@@ -35,7 +35,35 @@ export default defineNuxtConfig({
     vite: {
         plugins: [tailwindcss()],
         optimizeDeps: {
-            include: ['eventemitter3'],
+            include: [
+                '@lucide/vue',
+                '@tanstack/vue-query',
+                '@tiptap/extension-placeholder',
+                '@tiptap/starter-kit',
+                '@tiptap/vue-3',
+                'axios',
+                'class-variance-authority',
+                'clsx',
+                'dayjs', // CJS
+                'dayjs/locale/en', // CJS
+                'dayjs/locale/zh-cn', // CJS
+                'dayjs/plugin/relativeTime', // CJS
+                'eventemitter3',
+                'file-type',
+                'filesize',
+                'hash-wasm',
+                'heic-to',
+                'lodash-es',
+                'markdown-it',
+                'nanoid',
+                'qrcode', // CJS
+                'reka-ui',
+                'sweet-curl-parser', // CJS
+                'tailwind-merge',
+                'tiptap-markdown',
+                'vue-sonner',
+                'vue3-pixi',
+            ],
         },
     },
     nitro: {
