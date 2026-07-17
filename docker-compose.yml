@@ -1,24 +1,112 @@
-services:
-    app:
-        image: fudaoyuanicu/015-app:latest
-        container_name: 015-app
-        volumes:
-            - ./uploads:/uploads
-            - ./config.yaml:/app/config.yaml
-        ports:
-            - '8080:80'
-        depends_on:
-            - redis
+# 纯运行版（Pull & Run）— 不在本机 build
+# 镜像由 GitHub Actions 构建并推送到 GHCR：
+#   ghcr.io/witguang/015:latest
+#   ghcr.io/witguang/015-worker:latest
+#
+# 用法：
+#   1. cp config.example.yaml config.yaml  # 并填写 secret / site.url
+#   2. mkdir -p uploads
+#   3. docker compose pull && docker compose up -d
+#
+# 推荐使用 VPS 脚本一键部署：https://github.com/witguang/vsm
 
-    worker:
-        image: fudaoyuanicu/015-worker:latest
-        container_name: worker
-        volumes:
-            - ./uploads:/uploads
-            - ./config.yaml:/config.yaml
-        depends_on:
-            - app
-            - redis
-    redis:
-        image: redis:7
-        container_name: redis
+name: project-015
+
+services:
+  app:
+    image: ${IMAGE_APP:-ghcr.io/witguang/015:latest}
+    container_name: 015-app
+    restart: unless-stopped
+    pull_policy: ${PULL_POLICY:-always}
+    ports:
+      - "${BIND_ADDRESS:-0.0.0.0}:${APP_PORT:-10015}:80"
+    volumes:
+      - ${UPLOADS_DIR:-./uploads}:/uploads
+      - ${CONFIG_FILE:-./config.yaml}:/app/config.yaml:ro
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - 015-net
+    # 低配 VPS 友好上限；可按机器规格在 .env 覆盖
+    mem_limit: ${APP_MEM_LIMIT:-768m}
+    cpus: ${APP_CPUS:-1.5}
+
+  worker:
+    image: ${IMAGE_WORKER:-ghcr.io/witguang/015-worker:latest}
+    container_name: 015-worker
+    restart: unless-stopped
+    pull_policy: ${PULL_POLICY:-always}
+    volumes:
+      - ${UPLOADS_DIR:-./uploads}:/uploads
+      - ${CONFIG_FILE:-./config.yaml}:/config.yaml:ro
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    depends_on:
+      app:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x worker >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - 015-net
+    mem_limit: ${WORKER_MEM_LIMIT:-512m}
+    cpus: ${WORKER_CPUS:-1.0}
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:7-alpine}
+    container_name: 015-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "${REDIS_MAXMEMORY:-256mb}", "--maxmemory-policy", "allkeys-lru"]
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - 015-net
+    mem_limit: ${REDIS_MEM_LIMIT:-384m}
+    cpus: ${REDIS_CPUS:-0.5}
+    # redis 数据仅作缓存/队列，默认不落盘；需要持久化可自行改 command 并加 volume
+
+networks:
+  015-net:
+    name: 015-net
+    driver: bridge

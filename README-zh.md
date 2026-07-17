@@ -55,21 +55,33 @@
 
 ## 🚀 快速开始
 
-### Docker
+### 推荐：VPS 一键部署（Pull & Run）
 
-1. 下载文件
-    - config.example.yaml
-    - docker-compose.yml
-
-2. 把 config.example.yaml 配置完成后改为 config.yaml
-
-3. 启动
+构建已迁移到 GitHub Actions → GHCR，低配 VPS 无需本地编译：
 
 ```bash
-docker compose up -d
+curl -fsSL https://raw.githubusercontent.com/witguang/vsm/main/vps-deploy.sh | sudo bash
 ```
 
-4. 访问 `http://localhost:8080`
+更新：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/witguang/vsm/main/vps-deploy.sh | sudo bash -s -- update
+```
+
+镜像：
+
+- `ghcr.io/witguang/015:latest`
+- `ghcr.io/witguang/015-worker:latest`
+
+详见部署工具仓库：[witguang/vsm](https://github.com/witguang/vsm)
+
+### Docker Compose（手动）
+
+1. 下载 `config.example.yaml`、`docker-compose.yml`（可选 `.env.example` → `.env`）
+2. 复制为 `config.yaml` 并填写 `download_secret` / `password_salt` / `site.url`
+3. `mkdir -p uploads && docker compose pull && docker compose up -d`
+4. 访问 `http://localhost:10015`（默认端口，见 `.env` 的 `APP_PORT`）
 
 ## 🏗️ 技术架构
 

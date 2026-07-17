@@ -1,0 +1,224 @@
+# 商用 CI：在 GitHub Actions 构建 app + worker，推送到 GHCR
+# VPS 只负责 docker compose pull && up
+
+name: Build and Push to GHCR
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "worker/Dockerfile"
+      - "backend/**"
+      - "worker/**"
+      - "front/**"
+      - "pkg/**"
+      - "015.sh"
+      - "go.work"
+      - "go.work.sum"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/docker-build.yml"
+  workflow_dispatch:
+    inputs:
+      tag_extra:
+        description: "额外镜像 tag（可选，如 v1.2.0）"
+        required: false
+        type: string
+
+concurrency:
+  group: ghcr-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_APP: ghcr.io/witguang/015
+  IMAGE_WORKER: ghcr.io/witguang/015-worker
+
+permissions:
+  contents: read
+  packages: write
+  # Trivy 上传 SARIF 可选；无 Security 权限时扫描仍本地执行
+  security-events: write
+
+jobs:
+  # ---------- 并行构建 app / worker ----------
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: app
+            image_env: IMAGE_APP
+            dockerfile: ./Dockerfile
+            context: .
+            cache_scope: app
+          - name: worker
+            image_env: IMAGE_WORKER
+            dockerfile: ./worker/Dockerfile
+            context: .
+            cache_scope: worker
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image name
+        id: image
+        run: |
+          if [ "${{ matrix.image_env }}" = "IMAGE_APP" ]; then
+            echo "name=${{ env.IMAGE_APP }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${{ env.IMAGE_WORKER }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          labels: |
+            org.opencontainers.image.title=015-${{ matrix.name }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=AGPL-3.0
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-,format=short
+            type=raw,value={{date 'YYYYMMDD-HHmmss'}},enable={{is_default_branch}}
+            type=raw,value=${{ inputs.tag_extra }},enable=${{ inputs.tag_extra != '' }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ github.ref_name }}-${{ github.sha }}
+            BUILD_TIME=${{ github.event.head_commit.timestamp || github.run_started_at }}
+            REVISION=${{ github.sha }}
+            GOPROXY=https://proxy.golang.org,https://goproxy.cn,direct
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
+          # GHCR + 个人 fork 更稳；attestations 对拉取无影响
+          provenance: false
+          sbom: false
+
+      - name: Output digest
+        run: |
+          echo "### ${{ matrix.name }} image" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Image:** \`${{ steps.image.outputs.name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Digest:** \`${{ steps.build.outputs.digest }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Tags:**" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.meta.outputs.tags }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------- 轻量漏洞扫描（不阻断首发，结果写入 Summary） ----------
+  scan:
+    name: Scan images
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        image:
+          - ghcr.io/witguang/015:latest
+          - ghcr.io/witguang/015-worker:latest
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        run: docker pull ${{ matrix.image }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        continue-on-error: true
+        with:
+          image-ref: ${{ matrix.image }}
+          format: table
+          exit-code: "0"
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+      - name: Publish scan summary
+        if: always()
+        run: |
+          echo "### Trivy: \`${{ matrix.image }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "CRITICAL/HIGH 扫描结果见本 Job 日志（不阻断发布）。" >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------- 尝试公开包（失败不阻断，可手动在 Packages 设置） ----------
+  publish-visibility:
+    name: Ensure package visibility
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Set packages public (best-effort)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          for pkg in 015 015-worker; do
+            echo "→ package: $pkg"
+            gh api \
+              --method PUT \
+              -H "Accept: application/vnd.github+json" \
+              "/user/packages/container/${pkg}/visibility" \
+              -f visibility=public \
+              && echo "  public OK" \
+              || echo "  skip (可在 github.com/witguang?tab=packages 手动设为 Public)"
+          done
+
+  done:
+    name: Pipeline summary
+    needs: [build, scan, publish-visibility]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Final summary
+        run: |
+          {
+            echo "## 015 GHCR 构建完成"
+            echo ""
+            echo "| 组件 | 镜像 |"
+            echo "|------|------|"
+            echo "| App | \`ghcr.io/witguang/015:latest\` |"
+            echo "| Worker | \`ghcr.io/witguang/015-worker:latest\` |"
+            echo ""
+            echo "### VPS 更新"
+            echo '```bash'
+            echo "curl -fsSL https://raw.githubusercontent.com/witguang/vsm/main/vps-deploy.sh | sudo bash -s -- update"
+            echo "# 或"
+            echo "cd /opt/project_015 && docker compose pull && docker compose up -d"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -34,3 +34,9 @@ logs
 
 # worker
 pkg/mail/out/
+
+# local deploy
+.env
+uploads/
+config.yaml
+

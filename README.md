@@ -55,20 +55,33 @@ English | [中文](README-zh.md)
 
 ## 🚀 Quick Start
 
-### Docker
+### Recommended: VPS one-liner (Pull & Run)
 
-1. Download files
-   - config.example.yaml
-   - docker-compose.yml
+Build runs on GitHub Actions → GHCR. Low-spec VPS only pulls and runs:
 
-2. Rename config.example.yaml to config.yaml after configuration
-
-3. Start
 ```bash
-docker compose up -d
+curl -fsSL https://raw.githubusercontent.com/witguang/vsm/main/vps-deploy.sh | sudo bash
 ```
 
-4. Visit `http://localhost:8080`
+Update:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/witguang/vsm/main/vps-deploy.sh | sudo bash -s -- update
+```
+
+Images:
+
+- `ghcr.io/witguang/015:latest`
+- `ghcr.io/witguang/015-worker:latest`
+
+Deploy toolkit: [witguang/vsm](https://github.com/witguang/vsm)
+
+### Docker Compose (manual)
+
+1. Download `config.example.yaml` and `docker-compose.yml` (optional `.env.example` → `.env`)
+2. Copy to `config.yaml` and set `download_secret`, `password_salt`, `site.url`
+3. `mkdir -p uploads && docker compose pull && docker compose up -d`
+4. Open `http://localhost:10015` (default `APP_PORT`)
 
 ## 🏗️ Technical Architecture
 
