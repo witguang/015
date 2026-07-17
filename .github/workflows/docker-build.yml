@@ -135,13 +135,15 @@ jobs:
           echo "${{ steps.meta.outputs.tags }}" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
-  # ---------- 轻量漏洞扫描（不阻断首发，结果写入 Summary） ----------
+  # ---------- 轻量漏洞扫描（完全不阻断发布） ----------
   scan:
     name: Scan images
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         image:
           - ghcr.io/witguang/015:latest
@@ -158,8 +160,7 @@ jobs:
         run: docker pull ${{ matrix.image }}
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.28.0
-        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: ${{ matrix.image }}
           format: table
@@ -173,12 +174,13 @@ jobs:
           echo "### Trivy: \`${{ matrix.image }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "CRITICAL/HIGH 扫描结果见本 Job 日志（不阻断发布）。" >> "$GITHUB_STEP_SUMMARY"
 
-  # ---------- 尝试公开包（失败不阻断，可手动在 Packages 设置） ----------
+  # ---------- 尝试公开包（失败不阻断） ----------
   publish-visibility:
     name: Ensure package visibility
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    continue-on-error: true
     permissions:
       packages: write
       contents: read
@@ -199,10 +201,11 @@ jobs:
               || echo "  skip (可在 github.com/witguang?tab=packages 手动设为 Public)"
           done
 
+  # 仅依赖 build：镜像已推送即视为发布成功
   done:
     name: Pipeline summary
-    needs: [build, scan, publish-visibility]
-    if: always()
+    needs: [build]
+    if: always() && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Final summary
