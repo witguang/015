@@ -31,10 +31,6 @@ services:
       UPLOAD_MAXIMUM: ${STORAGE_LIMIT:-100GiB}
       NUXT_PUBLIC_CUSTOM_LINK: ${CUSTOM_LINK:-https://github.com/witguang/015}
       NUXT_PUBLIC_COPYRIGHT: ${COPYRIGHT:-Designed by Guang}
-      SITE_ICON: ${SITE_ICON:-/logo.png}
-      SITE_BG_URL: ${SITE_BG_URL:-}
-      SITE_ENABLE_BG: "${SITE_ENABLE_BG:-false}"
-      ABOUT_BG_URL: ${ABOUT_BG_URL:-}
     depends_on:
       redis:
         condition: service_healthy

@@ -105,16 +105,7 @@ front/public/background.jpg
 front/public/welcome.jpg
 ```
 
-Nuxt 构建后这些文件会分别以 `/logo.png`、`/background.jpg`、`/welcome.jpg` 提供。上传图片后，在 VPS 的 `.env` 中设置：
-
-```dotenv
-SITE_ICON=/logo.png
-SITE_BG_URL=/background.jpg
-SITE_ENABLE_BG=true
-ABOUT_BG_URL=/welcome.jpg
-```
-
-当前仓库尚未放入 `background.jpg` 和 `welcome.jpg` 时，应保持背景变量为空并将 `SITE_ENABLE_BG` 设为 `false`，避免页面请求不存在的资源。
+Nuxt 构建后这些文件会分别以 `/logo.png`、`/background.jpg`、`/welcome.jpg` 提供。镜像启动命令会自动检测两个可选 JPG：文件存在就自动启用，不存在就保持关闭。无需在每台 VPS 修改 `.env`，也无需挂载图片目录。
 
 ## 🏗️ 技术架构
 

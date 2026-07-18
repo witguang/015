@@ -87,7 +87,7 @@ Deploy toolkit: [witguang/vsm](https://github.com/witguang/vsm)
 
 The image never rewrites compiled Nuxt files. Frontend values use Nuxt Runtime Config through `NUXT_PUBLIC_CUSTOM_LINK` and `NUXT_PUBLIC_COPYRIGHT`; administrator, storage, and image values use the backend's native Viper environment overrides. Set the source variables `SITE_ADMIN_NAME`, `ADMIN_EMAIL`, `STORAGE_LIMIT`, `CUSTOM_LINK`, and `COPYRIGHT` in Compose to reuse one image across VPS instances.
 
-Repository-owned images must be committed at the exact paths `front/public/logo.png`, `front/public/background.jpg`, and `front/public/welcome.jpg`. Nuxt publishes them as `/logo.png`, `/background.jpg`, and `/welcome.jpg`. After adding the files, set `SITE_ICON=/logo.png`, `SITE_BG_URL=/background.jpg`, `SITE_ENABLE_BG=true`, and `ABOUT_BG_URL=/welcome.jpg`. Leave the background variables empty while those files do not exist.
+Repository-owned images must be committed at the exact paths `front/public/logo.png`, `front/public/background.jpg`, and `front/public/welcome.jpg`. Nuxt publishes them as `/logo.png`, `/background.jpg`, and `/welcome.jpg`. The image startup command detects the two optional JPG files and enables them automatically; no per-VPS image variables or mounts are required.
 
 ## 🏗️ Technical Architecture
 
