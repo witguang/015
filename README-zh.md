@@ -85,7 +85,7 @@ curl -fsSL https://raw.githubusercontent.com/witguang/vsm/main/vps-deploy.sh | s
 
 ### 每台 VPS 的运行时个性化
 
-app 镜像启动时会通过 `docker-entrypoint.sh` 替换 Nuxt 客户端和 Nitro 服务端产物中的显式占位符，并把管理员与容量变量映射到后端配置。不同 VPS 可以复用同一个镜像，只需在 Compose 环境变量中设置：
+镜像不会修改 Nuxt 的任何编译产物。前端链接和版权通过 Nuxt Runtime Config 的 `NUXT_PUBLIC_CUSTOM_LINK`、`NUXT_PUBLIC_COPYRIGHT` 安全注入；管理员、容量和图片配置通过后端已有的 Viper 环境变量覆盖。不同 VPS 可以复用同一个镜像，只需在 Compose 的源变量中设置：
 
 | 变量 | 默认值 | 用途 |
 | --- | --- | --- |
@@ -95,7 +95,7 @@ app 镜像启动时会通过 `docker-entrypoint.sh` 替换 Nuxt 客户端和 Nit
 | `CUSTOM_LINK` | `https://github.com/witguang/015` | 关于页和版权区域外部链接 |
 | `COPYRIGHT` | `Designed by Guang` | 前端版权文案 |
 
-`docker-compose.yml` 会将前三项映射为后端原生支持的 `ABOUT_NAME`、`ABOUT_EMAIL`、`ABOUT_URL` 和 `UPLOAD_MAXIMUM`。不要把每台机器的容量编译进镜像。
+`docker-compose.yml` 会将这些源变量映射为后端原生支持的 `ABOUT_NAME`、`ABOUT_EMAIL`、`ABOUT_URL`、`UPLOAD_MAXIMUM`，以及 Nuxt 原生支持的 `NUXT_PUBLIC_*` 变量。不要把每台机器的容量编译进镜像，也不要用 `sed` 修改 `.output`、JS 或 HTML 文件。
 
 需要将图片固定在所有镜像中时，把文件提交到 `front/public/`：
 
@@ -105,7 +105,16 @@ front/public/background.jpg
 front/public/welcome.jpg
 ```
 
-Nuxt 构建后这些文件会分别以 `/logo.png`、`/background.jpg`、`/welcome.jpg` 提供。再在 `config.example.yaml` 中将 `site.bg_url` 设置为 `/background.jpg`、`about.bg_url` 设置为 `/welcome.jpg` 并启用背景即可。
+Nuxt 构建后这些文件会分别以 `/logo.png`、`/background.jpg`、`/welcome.jpg` 提供。上传图片后，在 VPS 的 `.env` 中设置：
+
+```dotenv
+SITE_ICON=/logo.png
+SITE_BG_URL=/background.jpg
+SITE_ENABLE_BG=true
+ABOUT_BG_URL=/welcome.jpg
+```
+
+当前仓库尚未放入 `background.jpg` 和 `welcome.jpg` 时，应保持背景变量为空并将 `SITE_ENABLE_BG` 设为 `false`，避免页面请求不存在的资源。
 
 ## 🏗️ 技术架构
 

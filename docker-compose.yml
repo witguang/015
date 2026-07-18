@@ -25,15 +25,16 @@ services:
       - ${CONFIG_FILE:-./config.yaml}:/app/config.yaml:ro
     environment:
       TZ: ${TZ:-Asia/Shanghai}
-      SITE_ADMIN_NAME: ${SITE_ADMIN_NAME:-Guang}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
-      STORAGE_LIMIT: ${STORAGE_LIMIT:-100GiB}
-      CUSTOM_LINK: ${CUSTOM_LINK:-https://github.com/witguang/015}
-      COPYRIGHT: ${COPYRIGHT:-Designed by Guang}
       ABOUT_NAME: ${SITE_ADMIN_NAME:-Guang}
       ABOUT_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ABOUT_URL: ${CUSTOM_LINK:-https://github.com/witguang/015}
       UPLOAD_MAXIMUM: ${STORAGE_LIMIT:-100GiB}
+      NUXT_PUBLIC_CUSTOM_LINK: ${CUSTOM_LINK:-https://github.com/witguang/015}
+      NUXT_PUBLIC_COPYRIGHT: ${COPYRIGHT:-Designed by Guang}
+      SITE_ICON: ${SITE_ICON:-/logo.png}
+      SITE_BG_URL: ${SITE_BG_URL:-}
+      SITE_ENABLE_BG: "${SITE_ENABLE_BG:-false}"
+      ABOUT_BG_URL: ${ABOUT_BG_URL:-}
     depends_on:
       redis:
         condition: service_healthy

@@ -5,6 +5,12 @@ import getApiBaseUrl from './lib/getApiBaseUrl'
 export default defineNuxtConfig({
     compatibilityDate: '2024-04-03',
     devtools: { enabled: true },
+    runtimeConfig: {
+        public: {
+            customLink: 'https://github.com/witguang/015',
+            copyright: 'Designed by Guang',
+        },
+    },
     css: ['@/assets/css/main.css'],
     modules: [
         // '@serwist/nuxt',

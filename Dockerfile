@@ -70,8 +70,7 @@ RUN apk add --no-cache curl openssl \
 COPY --from=front-builder --chown=nuxtjs:nodejs /app/front/.output/ ./
 COPY --from=backend-builder /out/backend-bin /bin/backend
 COPY 015.sh /app/015.sh
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod 755 /app/015.sh /app/docker-entrypoint.sh /bin/backend
+RUN chmod 755 /app/015.sh /bin/backend
 
 ENV NODE_ENV=production \
     PORT=80 \
@@ -85,5 +84,4 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
     CMD curl -fsS http://127.0.0.1:80/ >/dev/null || exit 1
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["/bin/sh", "/app/015.sh"]
