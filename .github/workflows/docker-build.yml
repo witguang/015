@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - "Dockerfile"
+      - "Dockerfile.vps"
       - "worker/Dockerfile"
       - "backend/**"
       - "worker/**"
@@ -72,6 +73,16 @@ jobs:
         with:
           driver-opts: network=host
 
+      - name: Resolve Dockerfile
+        id: dockerfile
+        shell: bash
+        run: |
+          if [[ "${{ matrix.name }}" == "app" && -f ./Dockerfile.vps ]]; then
+            echo "file=./Dockerfile.vps" >> "$GITHUB_OUTPUT"
+          else
+            echo "file=${{ matrix.dockerfile }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -109,7 +120,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
+          file: ${{ steps.dockerfile.outputs.file }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
