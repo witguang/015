@@ -38,7 +38,7 @@ export const NotionMagicLinkEmail = () => (
           </Row>
           <Hr className="my-4 border-gray-300 border-t-2" />
           <Text className='m-0 text-sm'>
-            Powered by <Link href="https://github.com/keven1024/015" className='text-blue-500'>015</Link>
+            Powered by <Link href="https://github.com/witguang/015" className='text-blue-500'>015</Link>
           </Text>
         </Container>
       </Body>

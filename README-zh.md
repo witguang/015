@@ -83,6 +83,30 @@ curl -fsSL https://raw.githubusercontent.com/witguang/vsm/main/vps-deploy.sh | s
 3. `mkdir -p uploads && docker compose pull && docker compose up -d`
 4. 访问 `http://localhost:10015`（默认端口，见 `.env` 的 `APP_PORT`）
 
+### 每台 VPS 的运行时个性化
+
+app 镜像启动时会通过 `docker-entrypoint.sh` 替换 Nuxt 客户端和 Nitro 服务端产物中的显式占位符，并把管理员与容量变量映射到后端配置。不同 VPS 可以复用同一个镜像，只需在 Compose 环境变量中设置：
+
+| 变量 | 默认值 | 用途 |
+| --- | --- | --- |
+| `SITE_ADMIN_NAME` | `Guang` | 关于页管理员姓名 |
+| `ADMIN_EMAIL` | `admin@example.com` | 关于页管理员邮箱 |
+| `STORAGE_LIMIT` | `100GiB` | 后端真实上传容量上限及关于页容量显示 |
+| `CUSTOM_LINK` | `https://github.com/witguang/015` | 关于页和版权区域外部链接 |
+| `COPYRIGHT` | `Designed by Guang` | 前端版权文案 |
+
+`docker-compose.yml` 会将前三项映射为后端原生支持的 `ABOUT_NAME`、`ABOUT_EMAIL`、`ABOUT_URL` 和 `UPLOAD_MAXIMUM`。不要把每台机器的容量编译进镜像。
+
+需要将图片固定在所有镜像中时，把文件提交到 `front/public/`：
+
+```text
+front/public/logo.png
+front/public/background.jpg
+front/public/welcome.jpg
+```
+
+Nuxt 构建后这些文件会分别以 `/logo.png`、`/background.jpg`、`/welcome.jpg` 提供。再在 `config.example.yaml` 中将 `site.bg_url` 设置为 `/background.jpg`、`about.bg_url` 设置为 `/welcome.jpg` 并启用背景即可。
+
 ## 🏗️ 技术架构
 
 ### 前端技术栈

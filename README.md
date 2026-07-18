@@ -83,6 +83,12 @@ Deploy toolkit: [witguang/vsm](https://github.com/witguang/vsm)
 3. `mkdir -p uploads && docker compose pull && docker compose up -d`
 4. Open `http://localhost:10015` (default `APP_PORT`)
 
+### Per-VPS runtime branding
+
+The app image replaces explicit Nuxt output tokens at startup and maps runtime values to the backend configuration. Set `SITE_ADMIN_NAME`, `ADMIN_EMAIL`, `STORAGE_LIMIT`, `CUSTOM_LINK`, and `COPYRIGHT` in Compose to reuse one image across VPS instances.
+
+Repository-owned images belong in `front/public/` as `logo.png`, `background.jpg`, and `welcome.jpg`. Nuxt publishes them at the matching root URLs; point `site.bg_url` and `about.bg_url` at those paths in `config.example.yaml` when the files exist.
+
 ## 🏗️ Technical Architecture
 
 ### Frontend Tech Stack

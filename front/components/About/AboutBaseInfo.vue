@@ -61,7 +61,7 @@ const { state: userAvatar } = useAsyncState(async () => {
             <div class="text-xl">{{ renderI18n(appConfig?.site_title ?? {}, 'en', locale) }}</div>
             <div class="text-sm opacity-75 text-center px-5">
                 <I18nT keypath="page.about.powerBy" tag="span">
-                    <NuxtLink href="https://github.com/keven1024/015" target="_blank" class="text-primary hover:underline">015</NuxtLink>
+                    <NuxtLink href="__CUSTOM_LINK__" target="_blank" class="text-primary hover:underline">015</NuxtLink>
                 </I18nT>
             </div>
         </div>

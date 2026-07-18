@@ -25,6 +25,15 @@ services:
       - ${CONFIG_FILE:-./config.yaml}:/app/config.yaml:ro
     environment:
       TZ: ${TZ:-Asia/Shanghai}
+      SITE_ADMIN_NAME: ${SITE_ADMIN_NAME:-Guang}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      STORAGE_LIMIT: ${STORAGE_LIMIT:-100GiB}
+      CUSTOM_LINK: ${CUSTOM_LINK:-https://github.com/witguang/015}
+      COPYRIGHT: ${COPYRIGHT:-Designed by Guang}
+      ABOUT_NAME: ${SITE_ADMIN_NAME:-Guang}
+      ABOUT_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ABOUT_URL: ${CUSTOM_LINK:-https://github.com/witguang/015}
+      UPLOAD_MAXIMUM: ${STORAGE_LIMIT:-100GiB}
     depends_on:
       redis:
         condition: service_healthy
