@@ -84,4 +84,7 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
     CMD curl -fsS http://127.0.0.1:80/ >/dev/null || exit 1
 
+# Clear the Node base image wrapper; runtime configuration is handled by Nuxt
+# and the backend, never by a file-rewriting entrypoint.
+ENTRYPOINT []
 CMD ["/bin/sh", "/app/015.sh"]
